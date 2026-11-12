@@ -11,8 +11,12 @@ from dotenv import load_dotenv
 
 # Load environment variables from backend/.env or parent directory
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR.parent / ".env")
+
+def reload_env():
+    load_dotenv(BASE_DIR / ".env", override=True)
+    load_dotenv(BASE_DIR.parent / ".env", override=True)
+
+reload_env()
 
 from knowledge import BIOLOGICAL_KNOWLEDGE_CONTEXT
 
@@ -95,11 +99,13 @@ def health_check():
     """
     Health check endpoint returning service status, active model, and configuration readiness.
     """
+    reload_env()
     api_key_set = bool(os.getenv("GEMINI_API_KEY", "").strip())
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
     return {
         "status": "ok",
         "service": "MEDISCAN AI Biology Assistant API",
-        "model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "model": model_name,
         "configured": api_key_set,
         "message": "Service is healthy and ready." if api_key_set else "API key not configured.",
     }
@@ -109,6 +115,7 @@ async def chat_endpoint(payload: ChatRequest):
     """
     Conversational assistant endpoint using Google's Gemini API with server-side security.
     """
+    reload_env()
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
     # Rule 5: If API key is missing, return clear pending configuration message
@@ -153,23 +160,42 @@ async def chat_endpoint(payload: ChatRequest):
         )
 
         model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+        used_model = model_name
 
         # Generate response with grounded system instruction
-        response = client.models.generate_content(
-            model=model_name,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.3,
-                max_output_tokens=2048,
-            ),
-        )
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    temperature=0.3,
+                    max_output_tokens=2048,
+                ),
+            )
+        except Exception as model_err:
+            err_msg = str(model_err)
+            # If Google API indicates this model is retired/unavailable to new users, fallback to gemini-3.5-flash
+            if "no longer available" in err_msg or "404" in err_msg or "NOT_FOUND" in err_msg:
+                logger.warning(f"Model '{model_name}' unavailable ({err_msg[:80]}). Falling back to 'gemini-3.5-flash'.")
+                used_model = "gemini-3.5-flash"
+                response = client.models.generate_content(
+                    model=used_model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_INSTRUCTION,
+                        temperature=0.3,
+                        max_output_tokens=2048,
+                    ),
+                )
+            else:
+                raise
 
         reply_text = response.text or "I apologize, but I could not formulate an educational response at this time."
 
         return ChatResponse(
             response=reply_text,
-            model=model_name,
+            model=used_model,
             status="success",
         )
 
@@ -185,7 +211,7 @@ async def chat_endpoint(payload: ChatRequest):
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="The AI assistant is currently experiencing high demand. Please wait a moment and try again.",
             )
-        elif "API_KEY_INVALID" in err_str or "unregistered" in err_str or "PERMISSION_DENIED" in err_str:
+        elif "API_KEY_INVALID" in err_str or "unregistered" in err_str or "PERMISSION_DENIED" in err_str or "API key not valid" in err_str:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="The configured Gemini API key is invalid or unauthorized. Please verify your backend configuration.",
