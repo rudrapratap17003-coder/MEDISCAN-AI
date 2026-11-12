@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-text-primary;
+  }
+
+  h1 {
+    @apply text-3xl font-bold tracking-tight sm:text-4xl;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-xl font-semibold;
+  }
+
+  h4 {
+    @apply text-lg font-medium;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded-2xl border border-border shadow-soft p-6;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-medium hover:border-primary/20;
+  }
+
+  .input-base {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200;
+  }
+
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Dark mode theme overrides */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0F172A;
+  color: #F8FAFC;
+}
+
+html.dark .bg-surface,
+html.dark .card,
+html.dark aside,
+html.dark header,
+html.dark .bg-white {
+  background-color: #1E293B !important;
+  color: #F8FAFC;
+  border-color: #334155 !important;
+}
+
+html.dark .bg-background,
+html.dark .bg-slate-50,
+html.dark .bg-gray-50 {
+  background-color: #0F172A !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-text-primary {
+  color: #F8FAFC !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-text-secondary {
+  color: #94A3B8 !important;
+}
+
+html.dark .border-border,
+html.dark .border-slate-200,
+html.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
