@@ -239,7 +239,7 @@ const DashboardPage = () => {
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">
-            Welcome back, {user?.name || 'User'} 👋
+            Welcome back, {user?.displayName || user?.name || 'User'} 👋
           </h1>
           <p className="text-sm text-text-secondary mt-1">
             Your AI-assisted health screening workspace.
